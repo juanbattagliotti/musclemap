@@ -2,11 +2,12 @@ import { loadPoseLandmarker } from './pose/loader.js';
 import { dom, log } from './ui/dom.js';
 import { renderMuscleList, updateBodyDiagram, setStatus, setPoseStatus,
          updateRepUI, updateAsymmetryUI, updateFormBanner, clearOverlay,
-         showSource, hideSource, drawLandmarksAndConnectors, drawAngleArc } from './ui/render.js';
-import { makeArmState, resetArmState, updateArmData } from './analytics/session-state.js';
-import { detectRep } from './analytics/rep-detector.js';
+         showSource, hideSource, drawLandmarksAndConnectors, drawAngleArc,
+         setMuscleLabels, setExerciseTitle } from './ui/render.js';
+import { makeArmState, resetArmState } from './analytics/session-state.js';
+import { detectRep, isAtBottom } from './analytics/rep-detector.js';
 import { computeAsymmetry } from './analytics/asymmetry.js';
-import { getExercise } from './exercises/index.js';
+import { getExercise, listExercises } from './exercises/index.js';
 import { startWebcam, stopWebcam } from './sources/webcam.js';
 import { startUploadedVideo } from './sources/video-upload.js';
 import { runDemo, stopDemo } from './sources/demo.js';
@@ -20,12 +21,26 @@ let lastVideoTime = -1;
 let currentStream = null;
 let videoUrl = null;
 
-const currentExercise = getExercise('bicepCurl');
+let currentExercise = getExercise('bicepCurl');
 const armL = makeArmState();
 const armR = makeArmState();
 
+const MUSCLE_SETS = {
+  bicepCurl: [
+    { key: 'bicep', label: 'Biceps brachii' },
+    { key: 'deltoid', label: 'Ant. deltoid' },
+    { key: 'forearm', label: 'Forearm flex.' }
+  ],
+  squat: [
+    { key: 'quads', label: 'Quadriceps' },
+    { key: 'glutes', label: 'Glutes' },
+    { key: 'hamstrings', label: 'Hamstrings' },
+    { key: 'erectors', label: 'Erectors' }
+  ]
+};
+
 async function init() {
-  log('prototype v0.3 ready — form feedback enabled');
+  log('prototype v0.4 ready — squat + form feedback');
 
   dom.startBtn.addEventListener('click', onStartWebcam);
   dom.videoFileInput.addEventListener('change', onVideoFile);
@@ -33,10 +48,19 @@ async function init() {
   dom.demoBtn.addEventListener('click', onDemo);
   dom.stopBtn.addEventListener('click', onStop);
 
-  const empty = { bicep: 0, deltoid: 0, forearm: 0 };
-  renderMuscleList(dom.muscleListLEl, empty, false);
-  renderMuscleList(dom.muscleListREl, empty, true);
-  updateBodyDiagram(empty, empty);
+  if (dom.exerciseSelect) {
+    listExercises().forEach(ex => {
+      const opt = document.createElement('option');
+      opt.value = ex.id;
+      opt.textContent = ex.name;
+      dom.exerciseSelect.appendChild(opt);
+    });
+    dom.exerciseSelect.addEventListener('change', (e) => {
+      selectExercise(e.target.value);
+    });
+  }
+
+  selectExercise('bicepCurl');
 
   try {
     const loaded = await loadPoseLandmarker((phase) => setPoseStatus(phase));
@@ -49,6 +73,20 @@ async function init() {
     setPoseStatus('failed');
     log('pose load failed: ' + (e.message || e), 'err');
   }
+}
+
+function selectExercise(id) {
+  currentExercise = getExercise(id);
+  onReset();
+  setExerciseTitle(currentExercise.name);
+  setMuscleLabels(MUSCLE_SETS[id]);
+  log('exercise: ' + currentExercise.name, 'ok');
+}
+
+function emptyActivations() {
+  const obj = {};
+  (MUSCLE_SETS[currentExercise.id] || []).forEach(m => obj[m.key] = 0);
+  return obj;
 }
 
 async function onStartWebcam() {
@@ -106,7 +144,7 @@ async function onVideoFile(e) {
 function onReset() {
   resetArmState(armL);
   resetArmState(armR);
-  const empty = { bicep: 0, deltoid: 0, forearm: 0 };
+  const empty = emptyActivations();
   renderMuscleList(dom.muscleListLEl, empty, false);
   renderMuscleList(dom.muscleListREl, empty, true);
   updateBodyDiagram(empty, empty);
@@ -118,7 +156,6 @@ function onReset() {
   updateAsymmetryUI({ signed: 0, abs: 0, verdict: null });
   updateFormBanner(null);
   updateRepUI(armL, armR);
-  log('session reset', 'ok');
 }
 
 function onDemo() {
@@ -127,13 +164,13 @@ function onDemo() {
   running = true;
   showSource('DEMO MODE');
   dom.stopBtn.style.display = 'inline-block';
-  setStatus('SIMULATED CURL', '');
-  log('demo — simulated bilateral curl with slight asymmetry', 'ok');
+  setStatus('SIMULATED ' + currentExercise.name.toUpperCase(), '');
+  log('demo — ' + currentExercise.name + ' simulation', 'ok');
 
   runDemo(currentExercise, armL, armR, {
-    onFrame: (actsL, actsR, elbowL, elbowR, formL, formR) => {
-      dom.angleLEl.textContent = Math.round(elbowL) + '°';
-      dom.angleREl.textContent = Math.round(elbowR) + '°';
+    onFrame: (actsL, actsR, primaryAngleL, primaryAngleR, formL, formR) => {
+      dom.angleLEl.textContent = Math.round(primaryAngleL) + '°';
+      dom.angleREl.textContent = Math.round(primaryAngleR) + '°';
       renderMuscleList(dom.muscleListLEl, actsL, false);
       renderMuscleList(dom.muscleListREl, actsR, true);
       updateBodyDiagram(actsL, actsR);
@@ -181,28 +218,24 @@ function predictLoop() {
         const lm = result.landmarks[0];
         drawLandmarksAndConnectors(drawingUtils, poseUtils.PoseLandmarker, lm);
 
-        const { activations: actsL, formCheck: formL, elbowAngle: elbowL } =
-          processArm(lm, currentExercise, armL, 'left', now);
-        const { activations: actsR, formCheck: formR, elbowAngle: elbowR } =
-          processArm(lm, currentExercise, armR, 'right', now);
+        const resultL = processSide(lm, currentExercise, armL, 'left', now);
+        const resultR = processSide(lm, currentExercise, armR, 'right', now);
 
-        if (elbowL !== null) {
-          dom.angleLEl.textContent = Math.round(elbowL) + '°';
-          const landmarks = currentExercise.getKeypoints(lm, 'left');
-          if (landmarks) drawAngleArc(landmarks.elbow, elbowL, formL?.color || '#00ff9d');
+        if (resultL.primaryAngle !== null) {
+          dom.angleLEl.textContent = Math.round(resultL.primaryAngle) + '°';
+          if (resultL.arcPoint) drawAngleArc(resultL.arcPoint, resultL.primaryAngle, resultL.formCheck?.color || '#00ff9d');
         }
-        if (elbowR !== null) {
-          dom.angleREl.textContent = Math.round(elbowR) + '°';
-          const landmarks = currentExercise.getKeypoints(lm, 'right');
-          if (landmarks) drawAngleArc(landmarks.elbow, elbowR, formR?.color || '#ffd166');
+        if (resultR.primaryAngle !== null) {
+          dom.angleREl.textContent = Math.round(resultR.primaryAngle) + '°';
+          if (resultR.arcPoint) drawAngleArc(resultR.arcPoint, resultR.primaryAngle, resultR.formCheck?.color || '#ffd166');
         }
 
-        renderMuscleList(dom.muscleListLEl, actsL, false);
-        renderMuscleList(dom.muscleListREl, actsR, true);
-        updateBodyDiagram(actsL, actsR);
+        renderMuscleList(dom.muscleListLEl, resultL.activations, false);
+        renderMuscleList(dom.muscleListREl, resultR.activations, true);
+        updateBodyDiagram(resultL.activations, resultR.activations);
         updateRepUI(armL, armR);
         updateAsymmetryUI(computeAsymmetry(armL, armR));
-        updateFormBanner(mergeFormVerdicts(formL, formR));
+        updateFormBanner(mergeFormVerdicts(resultL.formCheck, resultR.formCheck));
       }
     } catch (e) {
       log('inference error: ' + e.message, 'err');
@@ -216,16 +249,51 @@ function predictLoop() {
   requestAnimationFrame(predictLoop);
 }
 
-function processArm(landmarks, exercise, armState, side, timestamp) {
+function processSide(landmarks, exercise, armState, side, timestamp) {
   const keypoints = exercise.getKeypoints(landmarks, side);
-  if (!keypoints) return { activations: { bicep: 0, deltoid: 0, forearm: 0 }, formCheck: null, elbowAngle: null };
+  if (!keypoints) {
+    return { activations: emptyActivations(), formCheck: null, primaryAngle: null, arcPoint: null };
+  }
 
-  const { elbowAngle, shoulderAngle } = exercise.computeAngles(keypoints);
-  const activations = updateArmData(armState, elbowAngle, shoulderAngle, timestamp, exercise.estimateActivations);
-  const formCheck = exercise.checkForm({ elbowAngle, shoulderAngle, phase: armState.currentPhase });
-  detectRep(armState, elbowAngle, activations.bicep, formCheck);
+  const angles = exercise.computeAngles(keypoints);
+  const primaryAngle = angles.elbowAngle;
+  const secondaryAngle = angles.shoulderAngle;
 
-  return { activations, formCheck, elbowAngle };
+  const angVel = computeAngVel(armState, primaryAngle, timestamp);
+
+  let activations;
+  if (exercise.estimateActivationsFull) {
+    activations = exercise.estimateActivationsFull(primaryAngle, secondaryAngle, angles.trunkLean || 0, angVel);
+  } else {
+    activations = exercise.estimateActivations(primaryAngle, secondaryAngle, angVel);
+  }
+
+  const ctx = {
+    ...angles,
+    phase: armState.currentPhase,
+    atBottom: isAtBottom(armState, primaryAngle, exercise.repThresholds),
+  };
+  const formCheck = exercise.checkForm(ctx);
+
+  const primaryMuscleKey = (MUSCLE_SETS[exercise.id] || [])[0]?.key || 'quads';
+  const primaryAct = activations[primaryMuscleKey] || 0;
+  detectRep(armState, primaryAngle, primaryAct, formCheck, exercise.repThresholds);
+
+  const arcPoint = keypoints.elbow || keypoints.knee;
+  return { activations, formCheck, primaryAngle, arcPoint };
+}
+
+function computeAngVel(state, angle, timestamp) {
+  state.angleHistory.push(angle);
+  state.angleTimestamps.push(timestamp);
+  if (state.angleHistory.length > 10) {
+    state.angleHistory.shift();
+    state.angleTimestamps.shift();
+  }
+  if (state.angleHistory.length < 2) return 0;
+  const dt = (state.angleTimestamps.at(-1) - state.angleTimestamps[0]) / 1000;
+  if (dt <= 0) return 0;
+  return (state.angleHistory.at(-1) - state.angleHistory[0]) / dt;
 }
 
 function mergeFormVerdicts(formL, formR) {

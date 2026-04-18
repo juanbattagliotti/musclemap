@@ -1,7 +1,9 @@
 import { bicepCurl } from './bicep-curl.js';
+import { squat } from './squat.js';
 
 const registry = {
   bicepCurl,
+  squat,
 };
 
 export function getExercise(id) {

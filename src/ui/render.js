@@ -1,10 +1,19 @@
 import { dom } from './dom.js';
 
-const MUSCLE_META = [
+let currentMuscleMeta = [
   { key: 'bicep', label: 'Biceps brachii' },
   { key: 'deltoid', label: 'Ant. deltoid' },
   { key: 'forearm', label: 'Forearm flex.' }
 ];
+
+export function setMuscleLabels(muscleMeta) {
+  currentMuscleMeta = muscleMeta;
+}
+
+export function setExerciseTitle(name) {
+  const el = document.getElementById('exerciseTitle');
+  if (el) el.textContent = name + ' analyzer';
+}
 
 export function setStatus(text, cls) {
   dom.statusEl.textContent = text;
@@ -38,7 +47,7 @@ export function clearOverlay() {
 
 export function renderMuscleList(containerEl, acts, isRight) {
   containerEl.innerHTML = '';
-  MUSCLE_META.forEach(m => {
+  currentMuscleMeta.forEach(m => {
     const v = acts[m.key] || 0;
     const row = document.createElement('div');
     row.className = 'muscle-row';
@@ -68,12 +77,12 @@ export function updateBodyDiagram(actsL, actsR) {
     const el = document.getElementById(id);
     if (el) el.setAttribute('fill', colorForActivation(v, warm));
   };
-  set('muscle-ldelt', actsL.deltoid, false);
-  set('muscle-lbicep', actsL.bicep, false);
-  set('muscle-lforearm', actsL.forearm, false);
-  set('muscle-rdelt', actsR.deltoid, true);
-  set('muscle-rbicep', actsR.bicep, true);
-  set('muscle-rforearm', actsR.forearm, true);
+  set('muscle-ldelt', actsL.deltoid || 0, false);
+  set('muscle-lbicep', actsL.bicep || 0, false);
+  set('muscle-lforearm', actsL.forearm || 0, false);
+  set('muscle-rdelt', actsR.deltoid || 0, true);
+  set('muscle-rbicep', actsR.bicep || 0, true);
+  set('muscle-rforearm', actsR.forearm || 0, true);
 }
 
 export function updateRepUI(armL, armR) {

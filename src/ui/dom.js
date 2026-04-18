@@ -21,6 +21,8 @@ export const dom = {
   progressFill: $('progressFill'),
   logEl: $('log'),
 
+  exerciseSelect: $('exerciseSelect'),
+
   repCountLEl: $('repCountL'),
   repCountREl: $('repCountR'),
   goodFormRepsEl: $('goodFormReps'),
