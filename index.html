@@ -1,0 +1,100 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>MuscleMap — Movement Analysis</title>
+  <link rel="stylesheet" href="/src/ui/styles.css">
+</head>
+<body>
+  <div class="wrap">
+    <span class="tag">MUSCLEMAP · v0.3 · REAL-TIME FORM FEEDBACK</span>
+    <h1 id="exerciseTitle">Bicep curl analyzer</h1>
+    <p class="subtitle">Live webcam or uploaded video. Bilateral tracking, asymmetry scoring, real-time form feedback.</p>
+
+    <div class="grid">
+      <div class="panel video-panel">
+        <div class="video-container">
+          <video id="video" playsinline muted></video>
+          <canvas class="overlay" id="overlay"></canvas>
+          <div class="status loading" id="status">SELECT INPUT SOURCE</div>
+          <div class="pose-status loading" id="poseStatus">POSE: LOADING…</div>
+          <div class="source-badge" id="sourceBadge" style="display:none;">LIVE WEBCAM</div>
+          <div class="form-banner" id="formBanner" style="display:none;">
+            <div class="form-banner-verdict" id="formVerdict">GOOD FORM</div>
+            <div class="form-banner-cue" id="formCue"></div>
+          </div>
+          <div class="progress-bar" id="progressBar" style="display:none;">
+            <div class="progress-fill" id="progressFill"></div>
+          </div>
+        </div>
+        <div class="controls">
+          <button id="startBtn">Start webcam</button>
+          <label class="file-label" for="videoFile">Upload video</label>
+          <input type="file" id="videoFile" accept="video/*">
+          <button id="resetBtn" class="secondary">Reset session</button>
+          <button id="demoBtn" class="secondary">Demo</button>
+          <button id="stopBtn" class="danger" style="display:none;">Stop</button>
+        </div>
+        <div class="log" id="log"></div>
+      </div>
+
+      <div class="side">
+        <div class="panel">
+          <div class="section-title">Session</div>
+          <div class="metric-row">
+            <span class="metric-label">Reps (L / R)</span>
+            <span class="metric-value accent"><span id="repCountL">0</span> / <span id="repCountR">0</span></span>
+          </div>
+          <div class="metric-row">
+            <span class="metric-label">Good-form reps</span>
+            <span class="metric-value" id="goodFormReps" style="font-size:18px;">— / —</span>
+          </div>
+          <div class="metric-row">
+            <span class="metric-label">ROM L (min–max°)</span>
+            <span class="metric-value" id="romL" style="font-size:16px;">—</span>
+          </div>
+          <div class="metric-row">
+            <span class="metric-label">ROM R (min–max°)</span>
+            <span class="metric-value" id="romR" style="font-size:16px;">—</span>
+          </div>
+          <div class="rep-history" id="repHistory"></div>
+        </div>
+
+        <div class="panel">
+          <div class="section-title">Left / Right symmetry</div>
+          <div class="asymmetry-wrap">
+            <div class="asymmetry-bar">
+              <div class="asymmetry-indicator" id="asymIndicator" style="left: 50%;"></div>
+            </div>
+            <div class="asymmetry-scale">
+              <span>L STRONGER</span><span>BALANCED</span><span>R STRONGER</span>
+            </div>
+            <div class="asymmetry-verdict" id="asymVerdict">AWAITING REPS</div>
+          </div>
+        </div>
+
+        <div class="panel">
+          <div class="section-title">Activation — left arm</div>
+          <div class="arm-header">
+            <span class="arm-label">◆ LEFT</span>
+            <span class="arm-angle" id="angleL">—°</span>
+          </div>
+          <div id="muscleListL"></div>
+        </div>
+
+        <div class="panel">
+          <div class="section-title">Activation — right arm</div>
+          <div class="arm-header">
+            <span class="arm-label" style="color:#ffd166;">◆ RIGHT</span>
+            <span class="arm-angle" id="angleR" style="color:#ffd166;">—°</span>
+          </div>
+          <div id="muscleListR"></div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <script type="module" src="/src/main.js"></script>
+</body>
+</html>
