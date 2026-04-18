@@ -31,13 +31,16 @@ export function runDemo(exercise, armL, armR, { onFrame, isRunning }) {
       formContextExtrasL = { trunkLean, valgusScore: valgus, kneeAsymmetry: Math.abs(kneeL - kneeR), stanceRatio: 1.2 };
       formContextExtrasR = formContextExtrasL;
     } else {
-      const elbowL = 105 + 65 * Math.cos(t);
-      const elbowR = 110 + 58 * Math.cos(t - 0.15);
-      const shoulderL = 170 + 8 * Math.sin(t * 0.8);
-      const shoulderR = 155 + 20 * Math.sin(t * 1.1);
+      // Simulate fatigue: frequency slows down as "reps" accumulate
+      const fatigueFactor = Math.max(0.55, 1 - (armL.repCount * 0.05));
+      const tF = t * fatigueFactor;
+      const elbowL = 105 + 65 * Math.cos(tF);
+      const elbowR = 110 + 58 * Math.cos(tF - 0.15);
+      const shoulderL = 170 + 8 * Math.sin(tF * 0.8);
+      const shoulderR = 155 + 20 * Math.sin(tF * 1.1);
 
-      const angVelL = -65 * Math.sin(t);
-      const angVelR = -58 * Math.sin(t - 0.15);
+      const angVelL = -65 * Math.sin(tF) * fatigueFactor;
+      const angVelR = -58 * Math.sin(tF - 0.15) * fatigueFactor;
       actsL = exercise.estimateActivations(elbowL, shoulderL, angVelL);
       actsR = exercise.estimateActivations(elbowR, shoulderR, angVelR);
       actsR.bicep *= 0.82;

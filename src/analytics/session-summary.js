@@ -3,7 +3,7 @@
 // This is the single source of truth for what appears in reports.
 // =========================================================================
 
-export function buildSessionSummary(armL, armR, exercise, sessionMeta = {}) {
+export function buildSessionSummary(armL, armR, exercise, sessionMeta = {}, setSummary = null) {
   const totalReps = armL.repCount + armR.repCount;
   if (totalReps === 0) {
     return null;
@@ -40,6 +40,9 @@ export function buildSessionSummary(armL, armR, exercise, sessionMeta = {}) {
 
     // Rep-by-rep timeline
     timeline: timeline(armL, armR),
+
+    // Optional: latest set summary from fatigue.js
+    setSummary,
   };
 
   return summary;

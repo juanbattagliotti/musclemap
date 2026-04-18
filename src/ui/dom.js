@@ -24,6 +24,14 @@ export const dom = {
   exerciseSelect: $('exerciseSelect'),
 
   reportBtn: $('reportBtn'),
+
+  startSetBtn: $('startSetBtn'),
+  endSetBtn: $('endSetBtn'),
+  fatigueWrap: $('fatigueWrap'),
+  fatigueStatus: $('fatigueStatus'),
+  rirValue: $('rirValue'),
+  fatigueFill: $('fatigueFill'),
+  velLossValue: $('velLossValue'),
   clientNameInput: $('clientName'),
   trainerNameInput: $('trainerName'),
   notesInput: $('sessionNotes'),

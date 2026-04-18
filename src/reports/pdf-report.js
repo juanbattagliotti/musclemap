@@ -161,6 +161,43 @@ export function generateSessionReport(summary, opts = {}) {
   drawLegendDot(doc, M + 120, y, COLORS.bad); doc.text('Bad', M + 130, y + 3);
   y += 18;
 
+  // ---- Set summary ----
+  if (summary.setSummary) {
+    drawRule(doc, M, y, W - M);
+    y += 18;
+    doc.setFont('helvetica', 'bold');
+    doc.setFontSize(11);
+    doc.setTextColor(COLORS.text);
+    doc.text('SET SUMMARY', M, y);
+    y += 14;
+    const s = summary.setSummary;
+    doc.setFont('helvetica', 'normal');
+    doc.setFontSize(10);
+    doc.setTextColor(COLORS.textDim);
+    const lossPct = Math.round(s.finalVelLoss * 100);
+    const rirStr = s.estimatedFinalRIR !== null ? s.estimatedFinalRIR.toFixed(1) : 'n/a';
+    doc.text('Reps completed: ' + s.totalReps + '     Velocity loss: ' + lossPct + '%     Estimated final RIR: ' + rirStr, M, y);
+    y += 14;
+
+    // Mini velocity chart
+    const chartW = W - M * 2;
+    const chartH = 35;
+    const maxV = Math.max(...s.velocities, 0.001);
+    const barW = Math.max(2, Math.min(16, chartW / Math.max(s.velocities.length, 1) - 2));
+    s.velocities.forEach((v, i) => {
+      const barH = (v / maxV) * chartH;
+      const bx = M + i * (barW + 2);
+      const by = y + chartH - barH;
+      doc.setFillColor(COLORS.accent);
+      doc.rect(bx, by, barW, barH, 'F');
+    });
+    y += chartH + 8;
+    doc.setFontSize(8);
+    doc.setTextColor(COLORS.textDim);
+    doc.text('Rep-by-rep concentric velocity (higher = faster, velocity loss = fatigue)', M, y);
+    y += 18;
+  }
+
   // ---- Notes ----
   if (summary.meta.notes) {
     drawRule(doc, M, y, W - M);

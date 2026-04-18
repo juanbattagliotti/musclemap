@@ -6,6 +6,8 @@ import { renderMuscleList, updateBodyDiagram, setStatus, setPoseStatus,
          setMuscleLabels, setExerciseTitle } from './ui/render.js';
 import { makeArmState, resetArmState } from './analytics/session-state.js';
 import { detectRep, isAtBottom } from './analytics/rep-detector.js';
+import { makeSetState, startSet as startSetFn, endSet as endSetFn,
+         recordRep, computeFatigue, rirLabel, summarizeSet } from './analytics/fatigue.js';
 import { computeAsymmetry } from './analytics/asymmetry.js';
 import { getExercise, listExercises } from './exercises/index.js';
 import { startWebcam, stopWebcam } from './sources/webcam.js';
@@ -26,6 +28,9 @@ let videoUrl = null;
 let currentExercise = getExercise('bicepCurl');
 const armL = makeArmState();
 const armR = makeArmState();
+const setL = makeSetState();
+const setR = makeSetState();
+let setActive = false;
 
 const MUSCLE_SETS = {
   bicepCurl: [
@@ -50,6 +55,8 @@ async function init() {
   dom.demoBtn.addEventListener('click', onDemo);
   dom.stopBtn.addEventListener('click', onStop);
   if (dom.reportBtn) dom.reportBtn.addEventListener('click', onGenerateReport);
+  if (dom.startSetBtn) dom.startSetBtn.addEventListener('click', onStartSet);
+  if (dom.endSetBtn) dom.endSetBtn.addEventListener('click', onEndSet);
 
   if (dom.exerciseSelect) {
     listExercises().forEach(ex => {
@@ -64,6 +71,8 @@ async function init() {
   }
 
   selectExercise('bicepCurl');
+  updateSetButtons();
+  updateFatigueUI();
 
   try {
     const loaded = await loadPoseLandmarker((phase) => setPoseStatus(phase));
@@ -147,6 +156,11 @@ async function onVideoFile(e) {
 function onReset() {
   resetArmState(armL);
   resetArmState(armR);
+  Object.assign(setL, makeSetState());
+  Object.assign(setR, makeSetState());
+  setActive = false;
+  updateFatigueUI();
+  updateSetButtons();
   const empty = emptyActivations();
   renderMuscleList(dom.muscleListLEl, empty, false);
   renderMuscleList(dom.muscleListREl, empty, true);
@@ -280,7 +294,11 @@ function processSide(landmarks, exercise, armState, side, timestamp) {
 
   const primaryMuscleKey = (MUSCLE_SETS[exercise.id] || [])[0]?.key || 'quads';
   const primaryAct = activations[primaryMuscleKey] || 0;
-  detectRep(armState, primaryAngle, primaryAct, formCheck, exercise.repThresholds);
+  const repRecord = detectRep(armState, primaryAngle, primaryAct, formCheck, exercise.repThresholds, timestamp);
+  if (repRecord && setActive) {
+    const setState = armState === armL ? setL : setR;
+    recordRep(setState, repRecord);
+  }
 
   const arcPoint = keypoints.elbow || keypoints.knee;
   return { activations, formCheck, primaryAngle, arcPoint };
@@ -309,11 +327,14 @@ function mergeFormVerdicts(formL, formR) {
 
 
 function onGenerateReport() {
+  // Prefer the side with more reps for the set summary (single-set report for now)
+  const primarySet = setL.reps.length >= setR.reps.length ? setL : setR;
+  const setSummary = primarySet.reps.length > 0 ? summarizeSet(primarySet) : null;
   const summary = buildSessionSummary(armL, armR, currentExercise, {
     clientName: dom.clientNameInput?.value || '',
     trainerName: dom.trainerNameInput?.value || '',
     notes: dom.notesInput?.value || '',
-  });
+  }, setSummary);
   if (!summary) {
     log('no reps recorded yet — nothing to report', 'err');
     return;
@@ -332,6 +353,86 @@ function buildFilename(summary) {
   const exercise = summary.meta.exerciseId;
   const client = (summary.meta.clientName || 'session').replace(/[^a-z0-9]+/gi, '-').toLowerCase();
   return `musclemap_${exercise}_${client}_${datePart}-${timePart}.pdf`;
+}
+
+
+function onStartSet() {
+  startSetFn(setL);
+  startSetFn(setR);
+  setActive = true;
+  updateSetButtons();
+  updateFatigueUI();
+  log('set started — tracking fatigue', 'ok');
+}
+
+function onEndSet() {
+  endSetFn(setL);
+  endSetFn(setR);
+  setActive = false;
+  updateSetButtons();
+  updateFatigueUI();
+  const sL = summarizeSet(setL);
+  const sR = summarizeSet(setR);
+  const totalReps = (sL?.totalReps || 0) + (sR?.totalReps || 0);
+  const lossL = sL ? Math.round(sL.finalVelLoss * 100) : 0;
+  const lossR = sR ? Math.round(sR.finalVelLoss * 100) : 0;
+  log('set ended — ' + totalReps + ' reps · vel loss L ' + lossL + '% · R ' + lossR + '%', 'ok');
+}
+
+function updateSetButtons() {
+  if (dom.startSetBtn) {
+    dom.startSetBtn.disabled = setActive;
+    dom.startSetBtn.textContent = setActive ? 'Set active…' : 'Start set';
+  }
+  if (dom.endSetBtn) {
+    dom.endSetBtn.style.display = setActive ? 'inline-block' : 'none';
+  }
+}
+
+function updateFatigueUI() {
+  if (!dom.fatigueWrap) return;
+
+  if (!setActive && setL.reps.length === 0 && setR.reps.length === 0) {
+    dom.fatigueWrap.classList.add('inactive');
+    dom.fatigueStatus.textContent = 'NO SET ACTIVE';
+    dom.rirValue.textContent = '—';
+    dom.fatigueFill.style.width = '0%';
+    dom.fatigueFill.className = 'fatigue-fill';
+    dom.velLossValue.textContent = '—';
+    return;
+  }
+
+  dom.fatigueWrap.classList.remove('inactive');
+
+  // Use the side with more reps as the primary display
+  const primarySet = setL.reps.length >= setR.reps.length ? setL : setR;
+  const result = computeFatigue(primarySet);
+
+  if (result.rir === null) {
+    dom.fatigueStatus.textContent = 'BASELINING…';
+    dom.rirValue.textContent = '—';
+    dom.fatigueFill.style.width = '5%';
+    dom.fatigueFill.className = 'fatigue-fill';
+    dom.velLossValue.textContent = '—';
+    return;
+  }
+
+  const { label, severity } = rirLabel(result.rir);
+  dom.fatigueStatus.textContent = label;
+  dom.fatigueStatus.dataset.severity = severity;
+
+  // RIR display — round to nearest half
+  const rirDisplay = Math.round(result.rir * 2) / 2;
+  dom.rirValue.textContent = rirDisplay;
+
+  // Fatigue bar fill
+  const fillPct = Math.min(100, result.fatigue * 100 / 0.4 * 100);
+  dom.fatigueFill.style.width = Math.min(100, result.fatigue / 0.4 * 100) + '%';
+  dom.fatigueFill.className = 'fatigue-fill ' + severity;
+
+  // Velocity loss
+  const velLossPct = Math.round(result.signals.velLoss * 100);
+  dom.velLossValue.textContent = velLossPct + '%';
 }
 
 init();

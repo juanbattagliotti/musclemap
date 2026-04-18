@@ -8,7 +8,7 @@
 </head>
 <body>
   <div class="wrap">
-    <span class="tag">MUSCLEMAP · v0.5 · SESSION REPORTS</span>
+    <span class="tag">MUSCLEMAP · v0.6 · FATIGUE TRACKING</span>
     <h1 id="exerciseTitle">Bicep curl analyzer</h1>
     <p class="subtitle">Live webcam or uploaded video. Bilateral tracking, asymmetry scoring, real-time form feedback.</p>
 
@@ -41,6 +41,8 @@
           <button id="demoBtn" class="secondary">Demo</button>
           <button id="stopBtn" class="danger" style="display:none;">Stop</button>
           <button id="reportBtn" class="accent-outline">Generate report</button>
+          <button id="startSetBtn" class="accent-outline">Start set</button>
+          <button id="endSetBtn" class="danger" style="display:none;">End set</button>
         </div>
         
         <div class="session-meta">
@@ -77,6 +79,27 @@
           <div class="rep-history" id="repHistory"></div>
         </div>
 
+        
+        <div class="panel fatigue-panel inactive" id="fatigueWrap">
+          <div class="section-title">Proximity to failure</div>
+          <div class="fatigue-header">
+            <div class="fatigue-rir">
+              <div class="rir-label">RIR</div>
+              <div class="rir-value" id="rirValue">—</div>
+            </div>
+            <div class="fatigue-status" id="fatigueStatus" data-severity="neutral">NO SET ACTIVE</div>
+          </div>
+          <div class="fatigue-gauge">
+            <div class="fatigue-fill" id="fatigueFill" style="width:0%;"></div>
+          </div>
+          <div class="fatigue-scale">
+            <span>FRESH</span><span>WORKING</span><span>FAILURE</span>
+          </div>
+          <div class="metric-row" style="margin-top:10px;">
+            <span class="metric-label">Velocity loss</span>
+            <span class="metric-value" id="velLossValue" style="font-size:18px;">—</span>
+          </div>
+        </div>
         <div class="panel">
           <div class="section-title">Left / Right symmetry</div>
           <div class="asymmetry-wrap">
