@@ -57,6 +57,7 @@ export function runDemo(exercise, armL, armR, { onFrame, isRunning }) {
     const formL = exercise.checkForm({
       elbowAngle: primaryL, kneeAngle: primaryL,
       shoulderAngle: secondaryL, hipAngle: secondaryL,
+      shoulderLift: Math.max(0, 180 - secondaryL),
       phase: armL.currentPhase,
       atBottom: armL.currentPhase === 'up' && primaryL < (exercise.repThresholds?.flex ?? 80) + 15,
       ...formContextExtrasL,
@@ -64,6 +65,7 @@ export function runDemo(exercise, armL, armR, { onFrame, isRunning }) {
     const formR = exercise.checkForm({
       elbowAngle: primaryR, kneeAngle: primaryR,
       shoulderAngle: secondaryR, hipAngle: secondaryR,
+      shoulderLift: Math.max(0, 180 - secondaryR),
       phase: armR.currentPhase,
       atBottom: armR.currentPhase === 'up' && primaryR < (exercise.repThresholds?.flex ?? 80) + 15,
       ...formContextExtrasR,
