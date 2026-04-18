@@ -11,6 +11,8 @@ import { getExercise, listExercises } from './exercises/index.js';
 import { startWebcam, stopWebcam } from './sources/webcam.js';
 import { startUploadedVideo } from './sources/video-upload.js';
 import { runDemo, stopDemo } from './sources/demo.js';
+import { buildSessionSummary } from './analytics/session-summary.js';
+import { generateSessionReport } from './reports/pdf-report.js';
 
 let poseLandmarker = null;
 let poseUtils = null;
@@ -47,6 +49,7 @@ async function init() {
   dom.resetBtn.addEventListener('click', onReset);
   dom.demoBtn.addEventListener('click', onDemo);
   dom.stopBtn.addEventListener('click', onStop);
+  if (dom.reportBtn) dom.reportBtn.addEventListener('click', onGenerateReport);
 
   if (dom.exerciseSelect) {
     listExercises().forEach(ex => {
@@ -302,6 +305,33 @@ function mergeFormVerdicts(formL, formR) {
   const worst = [formL, formR].filter(Boolean)
     .sort((a, b) => order[b.verdict] - order[a.verdict])[0];
   return worst;
+}
+
+
+function onGenerateReport() {
+  const summary = buildSessionSummary(armL, armR, currentExercise, {
+    clientName: dom.clientNameInput?.value || '',
+    trainerName: dom.trainerNameInput?.value || '',
+    notes: dom.notesInput?.value || '',
+  });
+  if (!summary) {
+    log('no reps recorded yet — nothing to report', 'err');
+    return;
+  }
+  const doc = generateSessionReport(summary);
+  const filename = buildFilename(summary);
+  doc.save(filename);
+  log('report saved: ' + filename, 'ok');
+}
+
+function buildFilename(summary) {
+  const d = summary.meta.date;
+  const pad = (n) => String(n).padStart(2, '0');
+  const datePart = d.getFullYear() + pad(d.getMonth()+1) + pad(d.getDate());
+  const timePart = pad(d.getHours()) + pad(d.getMinutes());
+  const exercise = summary.meta.exerciseId;
+  const client = (summary.meta.clientName || 'session').replace(/[^a-z0-9]+/gi, '-').toLowerCase();
+  return `musclemap_${exercise}_${client}_${datePart}-${timePart}.pdf`;
 }
 
 init();

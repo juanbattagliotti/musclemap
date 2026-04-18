@@ -8,7 +8,7 @@
 </head>
 <body>
   <div class="wrap">
-    <span class="tag">MUSCLEMAP · v0.4 · MULTI-EXERCISE + FORM FEEDBACK</span>
+    <span class="tag">MUSCLEMAP · v0.5 · SESSION REPORTS</span>
     <h1 id="exerciseTitle">Bicep curl analyzer</h1>
     <p class="subtitle">Live webcam or uploaded video. Bilateral tracking, asymmetry scoring, real-time form feedback.</p>
 
@@ -40,6 +40,17 @@
           <button id="resetBtn" class="secondary">Reset session</button>
           <button id="demoBtn" class="secondary">Demo</button>
           <button id="stopBtn" class="danger" style="display:none;">Stop</button>
+          <button id="reportBtn" class="accent-outline">Generate report</button>
+        </div>
+        
+        <div class="session-meta">
+          <div class="session-meta-row">
+            <label>Client <input type="text" id="clientName" placeholder="e.g. Marco R."></label>
+            <label>Trainer <input type="text" id="trainerName" placeholder="e.g. Juan B."></label>
+          </div>
+          <label class="full-width">Notes
+            <textarea id="sessionNotes" rows="2" placeholder="Anything to remember about this session…"></textarea>
+          </label>
         </div>
         <div class="log" id="log"></div>
       </div>

@@ -23,6 +23,11 @@ export const dom = {
 
   exerciseSelect: $('exerciseSelect'),
 
+  reportBtn: $('reportBtn'),
+  clientNameInput: $('clientName'),
+  trainerNameInput: $('trainerName'),
+  notesInput: $('sessionNotes'),
+
   repCountLEl: $('repCountL'),
   repCountREl: $('repCountR'),
   goodFormRepsEl: $('goodFormReps'),

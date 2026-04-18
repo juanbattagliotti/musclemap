@@ -245,3 +245,61 @@ input[type="file"] { display: none; }
   outline: none;
   border-color: var(--accent);
 }
+
+/* --- Report button (outline style) --- */
+button.accent-outline {
+  background: transparent;
+  color: var(--accent);
+  border: 1px solid var(--accent);
+}
+button.accent-outline:hover:not(:disabled) {
+  background: rgba(0,255,157,0.08);
+  transform: translateY(-1px);
+}
+
+/* --- Session metadata inputs --- */
+.session-meta {
+  margin-top: 14px;
+  padding: 14px;
+  background: rgba(255,255,255,0.02);
+  border: 1px solid var(--border);
+  border-radius: 10px;
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+.session-meta-row {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 10px;
+}
+.session-meta label {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  font-family: 'Menlo', monospace;
+  font-size: 10px;
+  letter-spacing: 0.15em;
+  color: var(--text-dim);
+  text-transform: uppercase;
+}
+.session-meta label.full-width { grid-column: 1 / -1; }
+.session-meta input,
+.session-meta textarea {
+  background: var(--bg);
+  color: var(--text);
+  border: 1px solid var(--border);
+  border-radius: 6px;
+  padding: 8px 10px;
+  font-size: 13px;
+  font-family: inherit;
+  font-weight: normal;
+  letter-spacing: normal;
+  text-transform: none;
+  resize: vertical;
+}
+.session-meta input:focus,
+.session-meta textarea:focus {
+  outline: none;
+  border-color: var(--accent);
+}
