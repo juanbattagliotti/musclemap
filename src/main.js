@@ -225,6 +225,12 @@ function onStop() {
 function predictLoop() {
   if (!running) return;
 
+  // Defensive: if the canvas never got sized, size it now
+  if ((dom.overlay.width === 0 || dom.overlay.height === 0) && dom.video.videoWidth > 0) {
+    dom.overlay.width = dom.video.videoWidth;
+    dom.overlay.height = dom.video.videoHeight;
+  }
+
   if (poseLandmarker && dom.video.currentTime !== lastVideoTime && dom.video.readyState >= 2) {
     lastVideoTime = dom.video.currentTime;
     const now = performance.now();
