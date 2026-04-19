@@ -8,7 +8,7 @@
 </head>
 <body>
   <div class="wrap">
-    <span class="tag">MUSCLEMAP · v0.6 · FATIGUE TRACKING</span>
+    <span class="tag">MUSCLEMAP · v0.8 · EXERCISE GUIDE</span>
     <h1 id="exerciseTitle">Bicep curl analyzer</h1>
     <p class="subtitle">Live webcam or uploaded video. Bilateral tracking, asymmetry scoring, real-time form feedback.</p>
 
@@ -28,6 +28,8 @@
           <div class="form-banner" id="formBanner" style="display:none;">
             <div class="form-banner-verdict" id="formVerdict">GOOD FORM</div>
             <div class="form-banner-cue" id="formCue"></div>
+            <button id="formLearnMoreBtn" class="form-learn-more" style="display:none;">Learn more</button>
+            <div class="form-education" id="formEducation" style="display:none;"></div>
           </div>
           <div class="progress-bar" id="progressBar" style="display:none;">
             <div class="progress-fill" id="progressFill"></div>
@@ -58,6 +60,25 @@
       </div>
 
       <div class="side">
+        <div class="panel guide-panel" id="guideWrap">
+          <div class="section-title">Exercise guide</div>
+          <h3 class="guide-name" id="guideName"></h3>
+          <p class="guide-description" id="guideDescription"></p>
+          <div class="guide-diagram-wrap" id="guideDiagram"></div>
+          <div class="guide-subtitle">EXECUTION</div>
+          <ol class="guide-execution" id="guideExecution"></ol>
+          <div class="guide-muscles">
+            <div class="muscle-group">
+              <div class="guide-subtitle">PRIMARY MUSCLES</div>
+              <div class="muscle-chips" id="guidePrimary"></div>
+            </div>
+            <div class="muscle-group">
+              <div class="guide-subtitle">SECONDARY / STABILIZERS</div>
+              <div class="muscle-chips" id="guideSecondary"></div>
+            </div>
+          </div>
+        </div>
+
         <div class="panel">
           <div class="section-title">Session</div>
           <div class="metric-row">

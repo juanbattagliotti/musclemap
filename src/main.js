@@ -71,6 +71,7 @@ async function init() {
   }
 
   selectExercise('bicepCurl');
+  bindCueLearnMore();
   updateSetButtons();
   updateFatigueUI();
 
@@ -92,6 +93,7 @@ function selectExercise(id) {
   onReset();
   setExerciseTitle(currentExercise.name);
   setMuscleLabels(MUSCLE_SETS[id]);
+  renderGuide(getGuide(id));
   log('exercise: ' + currentExercise.name, 'ok');
 }
 
@@ -171,7 +173,7 @@ function onReset() {
   dom.romREl.textContent = '—';
   dom.repHistoryEl.innerHTML = '';
   updateAsymmetryUI({ signed: 0, abs: 0, verdict: null });
-  updateFormBanner(null);
+  updateFormBannerWithEducation(null, getCueEducation);
   updateRepUI(armL, armR);
 }
 
@@ -193,7 +195,7 @@ function onDemo() {
       updateBodyDiagram(actsL, actsR);
       updateRepUI(armL, armR);
       updateAsymmetryUI(computeAsymmetry(armL, armR));
-      updateFormBanner(mergeFormVerdicts(formL, formR));
+      updateFormBannerWithEducation(mergeFormVerdicts(formL, formR), getCueEducation);
     },
     isRunning: () => running && mode === 'demo'
   });
@@ -215,7 +217,7 @@ function onStop() {
   dom.progressBar.style.display = 'none';
   dom.stopBtn.style.display = 'none';
   dom.startBtn.disabled = false;
-  updateFormBanner(null);
+  updateFormBannerWithEducation(null, getCueEducation);
   setStatus('SELECT INPUT SOURCE', 'loading');
   mode = null;
 }
@@ -252,7 +254,7 @@ function predictLoop() {
         updateBodyDiagram(resultL.activations, resultR.activations);
         updateRepUI(armL, armR);
         updateAsymmetryUI(computeAsymmetry(armL, armR));
-        updateFormBanner(mergeFormVerdicts(resultL.formCheck, resultR.formCheck));
+        updateFormBannerWithEducation(mergeFormVerdicts(resultL.formCheck, resultR.formCheck), getCueEducation);
       }
     } catch (e) {
       log('inference error: ' + e.message, 'err');
