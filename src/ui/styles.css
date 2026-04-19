@@ -522,3 +522,13 @@ button.accent-outline:hover:not(:disabled) {
   color: var(--text);
   line-height: 1.55;
 }
+
+/* --- Overlay toggle button --- */
+button.secondary.active {
+  background: rgba(0,255,157,0.08);
+  border-color: var(--accent);
+  color: var(--accent);
+}
+button.secondary.active:hover:not(:disabled) {
+  background: rgba(0,255,157,0.12);
+}

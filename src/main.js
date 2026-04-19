@@ -13,6 +13,7 @@ import { getExercise, listExercises } from './exercises/index.js';
 import { startWebcam, stopWebcam } from './sources/webcam.js';
 import { startUploadedVideo } from './sources/video-upload.js';
 import { runDemo, stopDemo } from './sources/demo.js';
+import { paintBodyOverlay } from './ui/body-overlay.js';
 import { buildSessionSummary } from './analytics/session-summary.js';
 import { generateSessionReport } from './reports/pdf-report.js';
 
@@ -31,6 +32,7 @@ const armR = makeArmState();
 const setL = makeSetState();
 const setR = makeSetState();
 let setActive = false;
+let overlayEnabled = true;
 
 const MUSCLE_SETS = {
   bicepCurl: [
@@ -57,6 +59,7 @@ async function init() {
   if (dom.reportBtn) dom.reportBtn.addEventListener('click', onGenerateReport);
   if (dom.startSetBtn) dom.startSetBtn.addEventListener('click', onStartSet);
   if (dom.endSetBtn) dom.endSetBtn.addEventListener('click', onEndSet);
+  if (dom.overlayToggle) dom.overlayToggle.addEventListener('click', onToggleOverlay);
 
   if (dom.exerciseSelect) {
     listExercises().forEach(ex => {
@@ -243,6 +246,9 @@ function predictLoop() {
         const lm = result.landmarks[0];
         drawLandmarksAndConnectors(drawingUtils, poseUtils.PoseLandmarker, lm);
 
+        // Body overlay — paint activation-colored muscle shapes over the video
+        // Computed once we have both sides' activations (see below)
+
         const resultL = processSide(lm, currentExercise, armL, 'left', now);
         const resultR = processSide(lm, currentExercise, armR, 'right', now);
 
@@ -254,6 +260,11 @@ function predictLoop() {
           dom.angleREl.textContent = Math.round(resultR.primaryAngle) + '°';
           if (resultR.arcPoint) drawAngleArc(resultR.arcPoint, resultR.primaryAngle, resultR.formCheck?.color || '#ffd166');
         }
+
+        // Paint the body overlay first so that UI chrome (angle arcs, etc)
+        // draws on top of it
+        paintBodyOverlay(dom.ctx, currentExercise.id, lm, dom.overlay.width, dom.overlay.height,
+                         resultL.activations, resultR.activations, overlayEnabled);
 
         renderMuscleList(dom.muscleListLEl, resultL.activations, false);
         renderMuscleList(dom.muscleListREl, resultR.activations, true);
@@ -441,6 +452,16 @@ function updateFatigueUI() {
   // Velocity loss
   const velLossPct = Math.round(result.signals.velLoss * 100);
   dom.velLossValue.textContent = velLossPct + '%';
+}
+
+
+function onToggleOverlay() {
+  overlayEnabled = !overlayEnabled;
+  if (dom.overlayToggle) {
+    dom.overlayToggle.textContent = overlayEnabled ? 'Overlay: ON' : 'Overlay: OFF';
+    dom.overlayToggle.classList.toggle('active', overlayEnabled);
+  }
+  log('body overlay ' + (overlayEnabled ? 'enabled' : 'disabled'), 'ok');
 }
 
 init();

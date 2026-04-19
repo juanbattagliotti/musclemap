@@ -27,6 +27,7 @@ export const dom = {
 
   startSetBtn: $('startSetBtn'),
   endSetBtn: $('endSetBtn'),
+  overlayToggle: $('overlayToggle'),
   fatigueWrap: $('fatigueWrap'),
   fatigueStatus: $('fatigueStatus'),
   rirValue: $('rirValue'),
