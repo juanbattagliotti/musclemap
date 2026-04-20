@@ -10,12 +10,14 @@ import { makeSetState, startSet as startSetFn, endSet as endSetFn,
          recordRep, computeFatigue, rirLabel, summarizeSet } from './analytics/fatigue.js';
 import { computeAsymmetry } from './analytics/asymmetry.js';
 import { getExercise, listExercises } from './exercises/index.js';
+import { getGuide, getCueEducation } from './exercises/exercise-guides.js';
 import { startWebcam, stopWebcam } from './sources/webcam.js';
 import { startUploadedVideo } from './sources/video-upload.js';
 import { runDemo, stopDemo } from './sources/demo.js';
 import { paintBodyOverlay } from './ui/body-overlay.js';
 import { buildSessionSummary } from './analytics/session-summary.js';
 import { generateSessionReport } from './reports/pdf-report.js';
+import { renderGuide, updateFormBannerWithEducation, bindCueLearnMore } from './ui/guide-render.js';
 
 let poseLandmarker = null;
 let poseUtils = null;
